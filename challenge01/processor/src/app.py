@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 from elasticsearch import Elasticsearch
-from sentence_splitter import SentenceSplitter
-from sentence_transformers import SentenceTransformer
+from sentence_splitter import SentenceSplitter              # Libreria para dividir texto en oraciones
+from sentence_transformers import SentenceTransformer       # Libreria para generar embeddings
 
 ELASTICSEARCH_URL = os.getenv("ELASTICSEARCH_URL", "http://elasticsearch:9200")
 INPUT_DIR = os.getenv("INPUT_DIR", "/app/input")
@@ -16,7 +16,7 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM
 model = SentenceTransformer(EMBEDDING_MODEL)
 
 # Sentence Splitter
-splitter = SentenceSplitter(language="en")
+splitter = SentenceSplitter(language="en")  # Objeto que parte el texto en oraciones
 
 
 def create_index(es: Elasticsearch, index_name: str) -> None:
@@ -24,7 +24,7 @@ def create_index(es: Elasticsearch, index_name: str) -> None:
     if es.indices.exists(index=index_name):
         return
 
-    mapping = {
+    mapping = {     #"esquema" del indice, define los campos y sus tipos para los documentos que se indexaran
         "mappings": {
             "properties": {
                 "doc_id": {"type": "keyword"},
@@ -52,6 +52,7 @@ def load_json_files(input_dir: str) -> List[Dict[str, Any]]:
 
 def split_into_chunks(text: str, max_sentences: int = 5) -> List[str]:
     # Split the text into small chunks.
+    # Chunks de hasta 5 oraciones.
     sentences = splitter.split(text)
     chunks = []
 
@@ -110,12 +111,12 @@ def semantic_search(es: Elasticsearch, index_name: str, query_text: str, k: int 
 
     body = {
         "knn": {
-            "field": "embedding",
+            "field": "embedding",   # Campo donde va a buscar el vector de consulta
             "query_vector": query_vector,
-            "k": k,
-            "num_candidates": 10
+            "k": k,                 # Numero de resultados a devolver
+            "num_candidates": 10    # Canttidad de cantidadtos a revisar antes de elegir los mejores resultados
         },
-        "_source": ["doc_id", "chunk_id", "title", "content"]
+        "_source": ["doc_id", "chunk_id", "title", "description"]  # Campos que queremos que se devuelvan en los resultados
     }
 
     return es.search(index=index_name, body=body)
