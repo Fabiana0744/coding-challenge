@@ -24,12 +24,15 @@ def create_index(es: Elasticsearch, index_name: str) -> None:
     if es.indices.exists(index=index_name):
         return
 
-    mapping = {     #"esquema" del indice, define los campos y sus tipos para los documentos que se indexaran
+    mapping = {     # "esquema" del indice, define los campos y sus tipos para los documentos que se indexaran
         "mappings": {
             "properties": {
                 "doc_id": {"type": "keyword"},
                 "chunk_id": {"type": "keyword"},
                 # TODO: Complete the mapping with the required fields and types.
+                "title": {"type": "text"},
+                "description": {"type": "text"},
+
                 "embedding": {
                     "type": "dense_vector",
                     "dims": 384 # Adjust the dimensions where required.
@@ -65,7 +68,8 @@ def split_into_chunks(text: str, max_sentences: int = 5) -> List[str]:
 
 def generate_embedding(text: str) -> List[float]:
     # TODO: Create the required code to generate text embeddings.
-    return None
+    embedding = model.encode(text).tolist()  # Genera el embedding y lo convierte a lista para ser compatible con Elasticsearch
+    return embedding
 
 
 def proccess_documents(document: Dict[str, Any]) -> List[Dict[str, Any]]:
