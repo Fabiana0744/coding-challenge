@@ -144,7 +144,9 @@ def proccess_documents(document: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 def index_documents(es: Elasticsearch, index_name: str, docs: List[Dict[str, Any]]) -> None:
     # TODO: Index documents into Elasticsearch
-    return
+    for doc in docs:
+        es.index(index=index_name, body=doc)
+    print(f"Indexed {len(docs)} documents into index: {index_name}")
 
 
 def semantic_search(es: Elasticsearch, index_name: str, query_text: str, k: int = 3) -> Dict[str, Any]:
