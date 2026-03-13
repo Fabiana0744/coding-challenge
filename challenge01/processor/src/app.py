@@ -1,5 +1,6 @@
 import json
 import os
+import unicodedata          # Libreria para normalizar texto y eliminar caracteres no ASCII
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -32,6 +33,11 @@ def create_index(es: Elasticsearch, index_name: str) -> None:
                 # TODO: Complete the mapping with the required fields and types.
                 "title": {"type": "text"},
                 "description": {"type": "text"},
+                "authors": {"type": "keyword"},
+                "first_published": {"type": "integer"},
+                "subjects": {"type": "keyword"},
+                "language": {"type": "keyword"},
+                "openlibrary_url": {"type": "keyword"},
 
                 "embedding": {
                     "type": "dense_vector",
@@ -72,6 +78,27 @@ def generate_embedding(text: str) -> List[float]:
     return embedding
 
 
+def clean_non_ascii(text: str) -> str:
+
+    replacements = {    # Reemplazos comunes de caracteres no ASCII por sus equivalentes ASCII (para no perder sentido)
+        "“": '"',
+        "”": '"',
+        "‘": "'",
+        "’": "'",
+        "—": "-",
+        "–": "-",
+        "…": "...",
+        "\u00a0": " ",   # non-breaking space
+    }
+
+    for non_ascii, ascii_char in replacements.items():
+        text = text.replace(non_ascii, ascii_char)
+
+    # Remove non-ASCII characters from the text.
+    normalized = unicodedata.normalize('NFKD', text)
+    ascii_text = normalized.encode('ascii', 'ignore').decode('ascii')
+    return ascii_text.strip()
+
 def proccess_documents(document: Dict[str, Any]) -> List[Dict[str, Any]]:
     # TODO: Complete the required code to process each document:
     # Split the document into chunks
@@ -84,6 +111,11 @@ def proccess_documents(document: Dict[str, Any]) -> List[Dict[str, Any]]:
     doc_id = document.get("id")
     title = document.get("title", "")
     description = document.get("description", "")
+    authors = document.get("authors", [])
+    first_published = document.get("first_published", "")
+    subjects = document.get("subjects", [])
+    language = document.get("language", "")
+    openlibrary_url = document.get("openlibrary_url", "")
 
     if not doc_id or not description:
         raise ValueError("Document must contain at least 'id' and 'description'")
@@ -92,12 +124,18 @@ def proccess_documents(document: Dict[str, Any]) -> List[Dict[str, Any]]:
     result = []
 
     for idx, chunk in enumerate(chunks):
-        embedding = generate_embedding(chunk)
+        clean_chunk = clean_non_ascii(chunk)  # Limpiar el texto del chunk para eliminar caracteres no ASCII
+        embedding = generate_embedding(clean_chunk)  # Generar el embedding para el chunk limpio
         result.append({
             "doc_id": str(doc_id),
             "chunk_id": f"{doc_id}-{idx}",
             "title": title,
             "description": chunk,
+            "authors": authors,
+            "first_published": first_published,
+            "subjects": [subject.capitalize() for subject in subjects],  # Capitalize subjects
+            "language": language,
+            "openlibrary_url": openlibrary_url,
             "embedding": embedding
         })
 
