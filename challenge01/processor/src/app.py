@@ -34,7 +34,7 @@ def create_index(es: Elasticsearch, index_name: str) -> None:
                 "title": {"type": "text"},
                 "description": {"type": "text"},
                 "authors": {"type": "keyword"},
-                "first_published": {"type": "integer"},
+                "first_publish_year": {"type": "integer"},
                 "subjects": {"type": "keyword"},
                 "language": {"type": "keyword"},
                 "openlibrary_url": {"type": "keyword"},
@@ -112,9 +112,9 @@ def proccess_documents(document: Dict[str, Any]) -> List[Dict[str, Any]]:
     title = document.get("title", "")
     description = document.get("description", "")
     authors = document.get("authors", [])
-    first_published = document.get("first_published", "")
+    first_publish_year = document.get("first_publish_year", "")
     subjects = document.get("subjects", [])
-    language = document.get("language", "")
+    language = document.get("language", [])
     openlibrary_url = document.get("openlibrary_url", "")
 
     if not doc_id or not description:
@@ -130,9 +130,9 @@ def proccess_documents(document: Dict[str, Any]) -> List[Dict[str, Any]]:
             "doc_id": str(doc_id),
             "chunk_id": f"{doc_id}-{idx}",
             "title": title,
-            "description": chunk,
+            "description": clean_chunk,
             "authors": authors,
-            "first_published": first_published,
+            "first_publish_year": first_publish_year,
             "subjects": [subject.capitalize() for subject in subjects],  # Capitalize subjects
             "language": language,
             "openlibrary_url": openlibrary_url,
@@ -183,6 +183,22 @@ def main() -> None:
 
     # TODO: Create several semantic search queries and print the results.
     # Use the function semantic_search()
+
+    queries = [
+        "books about machine learning",
+        "books about friendship",
+        "books about space exploration"
+    ]
+
+    for query in queries:
+        print(f"\nQuery: {query}")
+        results = semantic_search(es, INDEX_NAME, query)
+        
+        for hit in results["hits"]["hits"]:
+            source = hit["_source"]
+            print(f"Doc ID: {source['doc_id']}, Chunk ID: {source['chunk_id']}, Title: {source['title']}")
+            print(f"Description: {source['description']}\n")
+    
 
 
 if __name__ == "__main__":
